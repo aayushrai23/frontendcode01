@@ -3,8 +3,8 @@ os: linux
 
 files:
   - source: /
-    destination: /home/ubuntu/pipeline-deploy
-file_exists_behavior: OVERWRITE
+    destination: /home/ubuntu/frontend
+    file_exists_behavior: OVERWRITE
 
 hooks:
   BeforeInstall:
