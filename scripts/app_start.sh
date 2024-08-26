@@ -1,3 +1,3 @@
 #!/bin/bash
-cd /home/ubuntu/test/frontend-code
+cd /home/ubuntu/frontend-code
 pm2 start react
