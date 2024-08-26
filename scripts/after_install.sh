@@ -1,6 +1,6 @@
 #!/bin/bash
-cd /home/ubuntu/test/frontend-code
-rm -rf /home/ubuntu/test/frontend-code/node_modules
+cd /home/ubuntu/frontend-code
+rm -rf /home/ubuntu/frontend-code/node_modules
 
 npm install
 npm run build
