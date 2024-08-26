@@ -1,3 +1,4 @@
 #!/bin/bash
-cd /home/ubuntu/pipeline-deploy
+cd /home/ubuntu/frontend
 npm install --force
+npm run build
