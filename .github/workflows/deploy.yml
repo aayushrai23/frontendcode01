@@ -36,7 +36,7 @@ jobs:
           AWS_EC2_HOST: ${{ secrets.AWS_EC2_HOST }}
         run: |
           ssh -i ~/.ssh/deploy_key $AWS_EC2_USER@$AWS_EC2_HOST << 'EOF'
-          cd /home/ubuntu/code-deploy
+          cd /home/ubuntu/frontend-code
           git pull origin main
           npm install
           npm run build
