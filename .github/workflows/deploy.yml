@@ -36,12 +36,25 @@ jobs:
           AWS_EC2_HOST: ${{ secrets.AWS_EC2_HOST }}
         run: |
           ssh -i ~/.ssh/deploy_key $AWS_EC2_USER@$AWS_EC2_HOST << 'EOF'
-          mkdir -p /home/ubuntu/frontend-code || exit
+          # Check if the directory exists; if not, create it
+          if [ ! -d "/home/ubuntu/frontend-code" ]; then
+            mkdir -p /home/ubuntu/frontend-code
+          fi
+          
+          # Navigate to the project directory
           cd /home/ubuntu/frontend-code || exit
-          git pull origin main || exit
+
+          # Configure git to consider the directory safe
           git config --global --add safe.directory /home/ubuntu/frontend-code
+
+          # Pull the latest changes from the repository
+          git pull origin main || exit
+
+          # Fix permissions
           sudo chown -R $AWS_EC2_USER:$AWS_EC2_USER /home/ubuntu/frontend-code
           sudo chmod -R u+rwX /home/ubuntu/frontend-code
+
+          # Install dependencies and build the project
           npm install || exit
           npm run build || exit
           EOF
