@@ -36,10 +36,12 @@ jobs:
           AWS_EC2_HOST: ${{ secrets.AWS_EC2_HOST }}
         run: |
           ssh -i ~/.ssh/deploy_key $AWS_EC2_USER@$AWS_EC2_HOST << 'EOF'
-          cd /home/ubuntu/frontend-code
-          git pull origin main
-          npm install
-          npm run build
+          mkdir -p /home/ubuntu/frontend-code || exit
+          cd /home/ubuntu/frontend-code || exit
+          git pull origin main || exit
+          git config --global --add safe.directory /home/ubuntu/frontend-code
+          sudo chown -R $AWS_EC2_USER:$AWS_EC2_USER /home/ubuntu/frontend-code
+          sudo chmod -R u+rwX /home/ubuntu/frontend-code
+          npm install || exit
+          npm run build || exit
           EOF
-
-      
