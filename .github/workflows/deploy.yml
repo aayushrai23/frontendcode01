@@ -55,4 +55,7 @@ jobs:
           # Install dependencies and build the project
           npm install || exit
           npm run build || exit
+          pm2 delete react
+          pm2 start npm --name "react" -- start
+          pm2 restart react
           EOF
