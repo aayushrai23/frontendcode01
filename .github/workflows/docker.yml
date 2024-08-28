@@ -65,6 +65,6 @@ jobs:
             # Build Docker image
             sudo docker build -t my-app-image .
             sudo docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
-            sudo docker tag my-app-image:latest your_username/my-app-image:latest
-            sudo docker push your_username/my-app-image:latest
+            sudo docker tag my-app-image:latest aashman1414/my-app-image:latest
+            sudo docker push aashman1414/my-app-image:latest
           EOF
