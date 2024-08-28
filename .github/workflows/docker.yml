@@ -27,7 +27,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-      # Step 4: Add EC2 host to known hosts to prevent SSH prompt
+      # Step 4: Add EC2 host to known_hosts to prevent SSH prompt
       - name: Add EC2 host to known_hosts
         env:
           AWS_EC2_HOST: ${{ secrets.AWS_EC2_HOST }}
@@ -68,7 +68,9 @@ jobs:
             # Log in to Docker Hub
             echo $DOCKERHUB_TOKEN | sudo docker login -u $DOCKERHUB_USERNAME --password-stdin
 
-            # Tag and push the Docker image
+            # Tag the Docker image with the repository name
             sudo docker tag my-app-image $DOCKERHUB_USERNAME/my-app-image:latest
+
+            # Push the Docker image to Docker Hub
             sudo docker push $DOCKERHUB_USERNAME/my-app-image:latest
           EOF
