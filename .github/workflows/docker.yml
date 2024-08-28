@@ -63,7 +63,7 @@ jobs:
             fi
 
             # Build Docker image
-            sudo docker build -t my-app-image .
+            sudo docker build -t my-app-image:latest .
 
             # Log in to Docker Hub
             echo $DOCKERHUB_TOKEN | sudo docker login -u $DOCKERHUB_USERNAME --password-stdin
