@@ -63,12 +63,12 @@ jobs:
             fi
 
             # Build Docker image
-            sudo docker build -t my-app-image:latest .
+            sudo docker build -t my-app-image .
 
             # Log in to Docker Hub
             echo $DOCKERHUB_TOKEN | sudo docker login -u $DOCKERHUB_USERNAME --password-stdin
 
-            # Tag the Docker image with the repository name
+            # Tag the Docker image with the correct repository name
             sudo docker tag my-app-image $DOCKERHUB_USERNAME/my-app-image:latest
 
             # Push the Docker image to Docker Hub
