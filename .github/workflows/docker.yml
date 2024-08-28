@@ -64,10 +64,4 @@ jobs:
 
             # Build Docker image
             sudo docker build -t my-app-image .
-
-            echo "$DOCKERHUB_TOKEN" | sudo docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
-            # Correct Docker tag and push
-            sudo docker tag my-app-image:latest $DOCKERHUB_USERNAME/my-app-image:latest
-            sudo docker push $DOCKERHUB_USERNAME/my-app-image:latest
           EOF
