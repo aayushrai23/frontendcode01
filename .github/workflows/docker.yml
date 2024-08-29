@@ -90,13 +90,16 @@ jobs:
 
       # Step 9: Tag Docker image for ECR
       - name: Tag Docker image for ECR
+        env:
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          #ECR_REPOSITORY: ${{ secrets.REPO_NAME }}
-          docker tag aashman1414/my-app-image:latest $ECR_REPOSITORY:latest
+          echo "Tagging Docker image with: $ECR_REPOSITORY:latest"
+          docker tag aashman1414/my-app-image:latest "$ECR_REPOSITORY:latest"
 
       # Step 10: Push Docker image to Amazon ECR
       - name: Push Docker image to Amazon ECR
+        env:
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
           echo "Pushing Docker image to: $ECR_REPOSITORY:latest"
-          # Push the tagged Docker image to ECR
-          docker push $ECR_REPOSITORY:latest
+          docker push "$ECR_REPOSITORY:latest"
