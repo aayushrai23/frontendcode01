@@ -68,3 +68,36 @@ jobs:
             sudo docker tag my-app-image:latest aashman1414/my-app-image:latest
             sudo docker push aashman1414/my-app-image:latest
           EOF
+
+          # Step 6: Configure AWS credentials for ECR
+      -  name: Configure AWS credentials
+         uses: aws-actions/configure-aws-credentials@v2
+         with:
+           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+           aws-region: ${{ secrets.AWS_REGION }}
+ 
+      # Step 7: Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Step 8: Pull Docker image from Docker Hub
+      - name: Pull Docker image from Docker Hub
+        run: docker pull aashman1414/my-app-image:latest
+
+      # Step 9: Tag Docker image for ECR
+      - name: Tag Docker image for ECR
+        run: |
+          # Define the ECR repository URI
+          ECR_REPOSITORY_URI=$(211125556473.dkr.ecr.ap-south-1.amazonaws.com/my-app-image)
+
+          # Tag the Docker image with the ECR repository URI
+          docker tag aashman1414/my-app-image:latest $ECR_REPOSITORY_URI:latest
+
+      # Step 10: Push Docker image to Amazon ECR
+      - name: Push Docker image to Amazon ECR
+        run: |
+          # Push the tagged Docker image to ECR
+          docker push $ECR_REPOSITORY_URI:latest
+          
