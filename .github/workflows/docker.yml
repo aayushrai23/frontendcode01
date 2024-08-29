@@ -90,7 +90,7 @@ jobs:
       - name: Tag Docker image for ECR
         run: |
           # Define the ECR repository URI
-          ECR_REPOSITORY_URI=$(211125556473.dkr.ecr.ap-south-1.amazonaws.com/my-app-image)
+          ECR_REPOSITORY_URI="211125556473.dkr.ecr.ap-south-1.amazonaws.com/my-app-image"
 
           # Tag the Docker image with the ECR repository URI
           docker tag aashman1414/my-app-image:latest $ECR_REPOSITORY_URI:latest
