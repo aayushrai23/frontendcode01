@@ -46,11 +46,11 @@ jobs:
             # Update package list and install Docker if not already installed
             sudo apt-get update
             sudo apt-get install -y docker.io
-            
+
             # Ensure Docker is running
             sudo systemctl start docker
             sudo systemctl enable docker
-            
+
             # Navigate to the application directory or create if doesn't exist
             mkdir -p /home/ubuntu/frontend-code
             cd /home/ubuntu/frontend-code
@@ -64,19 +64,21 @@ jobs:
 
             # Build Docker image
             sudo docker build -t my-app-image .
+
+            # Log in to Docker Hub and push the image
             sudo docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
             sudo docker tag my-app-image:latest aashman1414/my-app-image:latest
             sudo docker push aashman1414/my-app-image:latest
           EOF
 
-          # Step 6: Configure AWS credentials for ECR
-      -  name: Configure AWS credentials
-         uses: aws-actions/configure-aws-credentials@v2
-         with:
-           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-           aws-region: ${{ secrets.AWS_REGION }}
- 
+      # Step 6: Configure AWS credentials for ECR
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
       # Step 7: Log in to Amazon ECR
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -100,4 +102,3 @@ jobs:
           echo "Pushing Docker image to: $ECR_REPOSITORY_URI:latest"
           # Push the tagged Docker image to ECR
           docker push $ECR_REPOSITORY_URI:latest
-          
