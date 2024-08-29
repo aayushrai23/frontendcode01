@@ -91,13 +91,13 @@ jobs:
         run: |
           # Define the ECR repository URI
           ECR_REPOSITORY_URI="211125556473.dkr.ecr.ap-south-1.amazonaws.com/my-app-image"
-
           # Tag the Docker image with the ECR repository URI
           docker tag aashman1414/my-app-image:latest $ECR_REPOSITORY_URI:latest
 
       # Step 10: Push Docker image to Amazon ECR
       - name: Push Docker image to Amazon ECR
         run: |
+          echo "Pushing Docker image to: $ECR_REPOSITORY_URI:latest"
           # Push the tagged Docker image to ECR
           docker push $ECR_REPOSITORY_URI:latest
           
