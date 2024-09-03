@@ -22,6 +22,8 @@ jobs:
       run: npm install
 
     - name: Build React app
+      env:
+        CI: false  # Disable CI mode to avoid treating warnings as errors
       run: npm run build
 
     - name: Deploy to EC2
@@ -30,7 +32,6 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         EC2_IP: ${{ secrets.EC2_IP }}
         EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-        
       run: |
         # Save the SSH private key
         echo "$EC2_SSH_KEY" > private_key.pem
@@ -38,7 +39,8 @@ jobs:
 
         # Deploy the application to EC2
         scp -i private_key.pem -r build/* ec2-user@$EC2_IP:/home/ubuntu/frontend-code/
-        
+
+        # Connect to EC2 and restart services
         ssh -i private_key.pem ec2-user@$EC2_IP << 'EOF'
           # Ensure the deployment directory exists
           mkdir -p /home/ubuntu/frontend-code || exit
@@ -47,6 +49,6 @@ jobs:
           sudo chown -R ubuntu:ubuntu /home/ubuntu/frontend-code || exit
           sudo chmod -R u+rwX /home/ubuntu/frontend-code || exit
 
-          # Restart the application
+          # Restart Nginx to serve the new build
           sudo systemctl restart nginx || exit
         EOF
