@@ -32,28 +32,21 @@ jobs:
         EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         
       run: |
-          ssh -t -i ~/.ssh/deploy_key $AWS_EC2_USER@$AWS_EC2_HOST << 'EOF'
+        # Save the SSH private key
+        echo "$EC2_SSH_KEY" > private_key.pem
+        chmod 600 private_key.pem
+
+        # Deploy the application to EC2
+        scp -i private_key.pem -r build/* ec2-user@$EC2_IP:/home/ubuntu/frontend-code/
+        
+        ssh -i private_key.pem ec2-user@$EC2_IP << 'EOF'
           # Ensure the deployment directory exists
           mkdir -p /home/ubuntu/frontend-code || exit
-          
-          # Change to the deployment directory
-          cd /home/ubuntu/frontend-code || exit
 
           # Fix ownership and permissions
-          sudo chown -R $AWS_EC2_USER:$AWS_EC2_USER /home/ubuntu/frontend-code || exit
+          sudo chown -R ubuntu:ubuntu /home/ubuntu/frontend-code || exit
           sudo chmod -R u+rwX /home/ubuntu/frontend-code || exit
 
-          # Configure Git to handle permissions issues
-          git config --global --add safe.directory /home/ubuntu/frontend-code || exit
-
-          # Pull the latest code
-          git pull origin main || exit
-
-          # Copy new build files
-          rsync -avz /path/to/build/* /home/ubuntu/frontend-code/ || exit
-
           # Restart the application
-          pm2 delete react || exit
-          pm2 start npm --name "react" -- start || exit
-          pm2 restart react || exit
-          EOF
+          sudo systemctl restart nginx || exit
+        EOF
