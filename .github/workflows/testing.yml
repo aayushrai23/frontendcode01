@@ -23,7 +23,7 @@ jobs:
 
       - name: Build React application
         env:
-          CI: false  # This allows the build to succeed even with linting warnings
+          CI: false  # Allow the build to succeed even with linting warnings
         run: |
           npm run build || exit 0
 
@@ -53,19 +53,4 @@ jobs:
 
           # Fix ownership and permissions
           sudo chown -R $AWS_EC2_USER:$AWS_EC2_USER /home/ubuntu/frontend-code || exit
-          sudo chmod -R u+rwX /home/ubuntu/frontend-code || exit
-
-          # Configure Git to handle permissions issues
-          git config --global --add safe.directory /home/ubuntu/frontend-code || exit
-
-          # Pull the latest code
-          git pull origin main || exit
-
-          # Copy new build files
-          rsync -avz /path/to/build/* /home/ubuntu/frontend-code/ || exit
-
-          # Restart the application
-          pm2 delete react || exit
-          pm2 start npm --name "react" -- start || exit
-          pm2 restart react || exit
-          EOF
+          sudo chmod -
