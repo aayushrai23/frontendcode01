@@ -1,0 +1,57 @@
+name: Deploy React App
+
+on:
+  push:
+    branches:
+      - main  # Deploy on changes to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'  # Use the appropriate Node.js version
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build React app
+      run: npm run build
+
+    - name: Deploy to EC2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        EC2_IP: ${{ secrets.EC2_IP }}
+        EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      run: |
+       ssh -i ~/.ssh/deploy_key $AWS_EC2_USER@$AWS_EC2_HOST << 'EOF'
+          # Ensure the deployment directory exists
+          mkdir -p /home/ubuntu/frontend-code || exit
+          
+          # Change to the deployment directory
+          cd /home/ubuntu/frontend-code || exit
+
+          # Fix ownership and permissions
+          sudo chown -R $AWS_EC2_USER:$AWS_EC2_USER /home/ubuntu/frontend-code || exit
+          sudo chmod -R u+rwX /home/ubuntu/frontend-code || exit
+
+          # Configure Git to handle permissions issues
+          git config --global --add safe.directory /home/ubuntu/frontend-code || exit
+
+          # Pull the latest code
+          git pull origin main || exit
+
+          # Install dependencies and build the project
+          npm install || exit
+          npm run build || exit
+          pm2 delete react
+          pm2 start npm --name "react" -- start
+          pm2 restart react
+          EOF
