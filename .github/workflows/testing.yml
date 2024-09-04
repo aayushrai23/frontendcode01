@@ -38,7 +38,7 @@ jobs:
           ALB_DNS_NAME: ${{ secrets.ALB_DNS_NAME }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          echo "$AWS_SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
           # Use `ssh-keyscan` with valid ALB DNS name
