@@ -24,11 +24,12 @@ jobs:
       - name: Add SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+          AWS_EC2_DNS_NAME: ${{ secrets.AWS_EC2_DNS_NAME }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.AWS_EC2_DNS_NAME }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H $AWS_EC2_DNS_NAME >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
         env:
