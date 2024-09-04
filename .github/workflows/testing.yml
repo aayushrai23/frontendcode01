@@ -21,6 +21,17 @@ jobs:
       - name: Install SSH client
         run: sudo apt-get install -y openssh-client
 
+      - name: Debug DNS Name and SSH Key
+        env:
+          AWS_EC2_DNS_NAME: ${{ secrets.AWS_EC2_DNS_NAME }}
+        run: |
+          echo "DNS Name: $AWS_EC2_DNS_NAME"
+          # Verify that the DNS name is correctly passed and not empty
+          if [ -z "$AWS_EC2_DNS_NAME" ]; then
+            echo "Error: AWS_EC2_DNS_NAME is not set or empty"
+            exit 1
+          fi
+
       - name: Add SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
@@ -29,7 +40,14 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H $AWS_EC2_DNS_NAME >> ~/.ssh/known_hosts
+
+          # Use `ssh-keyscan` with valid DNS name
+          if ssh-keyscan -H $AWS_EC2_DNS_NAME > ~/.ssh/known_hosts 2>/dev/null; then
+            echo "Successfully added SSH key to known_hosts"
+          else
+            echo "Failed to add SSH key to known_hosts"
+            exit 1
+          fi
 
       - name: Deploy to EC2
         env:
