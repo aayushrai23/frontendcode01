@@ -3,7 +3,7 @@ name: Deploy React App to Ubuntu EC2
 on:
   push:
     branches:
-      - main  
+      - main  # The branch that triggers the deployment
 
 jobs:
   build-and-deploy:
@@ -28,14 +28,14 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.EC2_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.AWS_EC2_DNS_NAME }} >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
         env:
           AWS_EC2_USER: ${{ secrets.AWS_EC2_USER }}
-          AWS_EC2_HOST: ${{ secrets.EC2_IP }}
+          AWS_EC2_DNS_NAME: ${{ secrets.AWS_EC2_DNS_NAME }}
         run: |
-          ssh -i ~/.ssh/deploy_key $AWS_EC2_USER@$EC2_IP << 'EOF'
+          ssh -i ~/.ssh/deploy_key $AWS_EC2_USER@$AWS_EC2_DNS_NAME << 'EOF'
           # Ensure the deployment directory exists
           mkdir -p /home/ubuntu/frontend-code || exit
           
@@ -55,7 +55,18 @@ jobs:
           # Install dependencies and build the project
           npm install || exit
           npm run build || exit
-          pm2 delete react
-          pm2 start npm --name "react" -- start
-          pm2 restart react
+
+          # Install PM2 if not already installed
+          if ! command -v pm2 &> /dev/null
+          then
+              npm install pm2@latest -g
+          fi
+
+          # Stop and restart the PM2 process
+          pm2 delete react || exit
+          pm2 start npm --name "react" -- start || exit
+          pm2 restart react || exit
+
+          # Save PM2 process list to be resurrected after reboot
+          pm2 save || exit
           EOF
