@@ -21,28 +21,28 @@ jobs:
       - name: Install SSH client
         run: sudo apt-get install -y openssh-client
 
-      - name: Debug DNS Name and SSH Key
+      - name: Debug ALB DNS Name and SSH Key
         env:
-          AWS_EC2_DNS_NAME: ${{ secrets.AWS_EC2_DNS_NAME }}
+          ALB_DNS_NAME: ${{ secrets.ALB_DNS_NAME }}
         run: |
-          echo "DNS Name: $AWS_EC2_DNS_NAME"
-          # Verify that the DNS name is correctly passed and not empty
-          if [ -z "$AWS_EC2_DNS_NAME" ]; then
-            echo "Error: AWS_EC2_DNS_NAME is not set or empty"
+          echo "ALB DNS Name: $ALB_DNS_NAME"
+          # Verify that the ALB DNS name is correctly passed and not empty
+          if [ -z "$ALB_DNS_NAME" ]; then
+            echo "Error: ALB_DNS_NAME is not set or empty"
             exit 1
           fi
 
       - name: Add SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
-          AWS_EC2_DNS_NAME: ${{ secrets.AWS_EC2_DNS_NAME }}
+          ALB_DNS_NAME: ${{ secrets.ALB_DNS_NAME }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-          # Use `ssh-keyscan` with valid DNS name
-          if ssh-keyscan -H $AWS_EC2_DNS_NAME > ~/.ssh/known_hosts 2>/dev/null; then
+          # Use `ssh-keyscan` with valid ALB DNS name
+          if ssh-keyscan -H $ALB_DNS_NAME > ~/.ssh/known_hosts 2>/dev/null; then
             echo "Successfully added SSH key to known_hosts"
           else
             echo "Failed to add SSH key to known_hosts"
@@ -51,10 +51,10 @@ jobs:
 
       - name: Deploy to EC2
         env:
-          AWS_EC2_USER: ${{ secrets.AWS_EC2_USER }}
-          AWS_EC2_DNS_NAME: ${{ secrets.AWS_EC2_DNS_NAME }}
+          EC2_USER: ${{ secrets.AWS_EC2_USER }}
+          ALB_DNS_NAME: ${{ secrets.ALB_DNS_NAME }}
         run: |
-          ssh -i ~/.ssh/deploy_key $AWS_EC2_USER@$AWS_EC2_DNS_NAME << 'EOF'
+          ssh -i ~/.ssh/deploy_key $EC2_USER@$ALB_DNS_NAME << 'EOF'
           # Ensure the deployment directory exists
           mkdir -p /home/ubuntu/frontend-code || exit
           
@@ -62,7 +62,7 @@ jobs:
           cd /home/ubuntu/frontend-code || exit
 
           # Fix ownership and permissions
-          sudo chown -R $AWS_EC2_USER:$AWS_EC2_USER /home/ubuntu/frontend-code || exit
+          sudo chown -R $EC2_USER:$EC2_USER /home/ubuntu/frontend-code || exit
           sudo chmod -R u+rwX /home/ubuntu/frontend-code || exit
 
           # Configure Git to handle permissions issues
