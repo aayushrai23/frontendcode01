@@ -1,91 +1,61 @@
-name: Deploy React App to Ubuntu EC2
+name: Deploy React App
 
 on:
   push:
     branches:
-      - main  # The branch that triggers the deployment
+      - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.17.0'
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16' # Specify the Node.js version
 
-      - name: Install SSH client
-        run: sudo apt-get install -y openssh-client
+    - name: Install dependencies
+      run: npm install
 
-      - name: Debug ALB DNS Name and SSH Key
-        env:
-          ALB_DNS_NAME: ${{ secrets.ALB_DNS_NAME }}
-        run: |
-          echo "ALB DNS Name: $ALB_DNS_NAME"
-          # Verify that the ALB DNS name is correctly passed and not empty
-          if [ -z "$ALB_DNS_NAME" ]; then
-            echo "Error: ALB_DNS_NAME is not set or empty"
-            exit 1
-          fi
+    - name: Build React app
+      run: npm run build
 
-      - name: Add SSH key
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
-          ALB_DNS_NAME: ${{ secrets.ALB_DNS_NAME }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$AWS_SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: react-app
+        path: build/
 
-          # Use `ssh-keyscan` with valid ALB DNS name
-          if ssh-keyscan -H $ALB_DNS_NAME > ~/.ssh/known_hosts 2>/dev/null; then
-            echo "Successfully added SSH key to known_hosts"
-          else
-            echo "Failed to add SSH key to known_hosts"
-            exit 1
-          fi
+    - name: Install AWS CLI
+      run: |
+        curl "https://d1uj6qtbmh3dt5.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscli-exe-linux-x86_64.zip"
+        unzip awscli-exe-linux-x86_64.zip
+        sudo ./aws/install
 
-      - name: Deploy to EC2
-        env:
-          EC2_USER: ${{ secrets.AWS_EC2_USER }}
-          ALB_DNS_NAME: ${{ secrets.ALB_DNS_NAME }}
-        run: |
-          ssh -i ~/.ssh/deploy_key $EC2_USER@$ALB_DNS_NAME << 'EOF'
-          # Ensure the deployment directory exists
-          mkdir -p /home/ubuntu/frontend-code || exit
-          
-          # Change to the deployment directory
-          cd /home/ubuntu/frontend-code || exit
+    - name: Deploy to S3
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        aws s3 cp build/ s3://my-aws-bucket-react/ --recursive
 
-          # Fix ownership and permissions
-          sudo chown -R $EC2_USER:$EC2_USER /home/ubuntu/frontend-code || exit
-          sudo chmod -R u+rwX /home/ubuntu/frontend-code || exit
+    - name: Trigger EC2 Auto Scaling Update
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        # Install AWS CLI if not already installed
+        if ! command -v aws &> /dev/null; then
+          curl "https://d1uj6qtbmh3dt5.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscli-exe-linux-x86_64.zip"
+          unzip awscli-exe-linux-x86_64.zip
+          sudo ./aws/install
+        fi
 
-          # Configure Git to handle permissions issues
-          git config --global --add safe.directory /home/ubuntu/frontend-code || exit
-
-          # Pull the latest code
-          git pull origin main || exit
-
-          # Install dependencies and build the project
-          npm install || exit
-          npm run build || exit
-
-          # Install PM2 if not already installed
-          if ! command -v pm2 &> /dev/null
-          then
-              npm install pm2@latest -g
-          fi
-
-          # Stop and restart the PM2 process
-          pm2 delete react || exit
-          pm2 start npm --name "react" -- start || exit
-          pm2 restart react || exit
-
-          # Save PM2 process list to be resurrected after reboot
-          pm2 save || exit
-          EOF
+        # Update Auto Scaling group
+        aws autoscaling update-auto-scaling-group --auto-scaling-group-name devops --launch-configuration-name devops
