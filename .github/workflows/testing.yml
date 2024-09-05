@@ -32,11 +32,13 @@ jobs:
         name: react-app
         path: build/
 
-    - name: Install AWS CLI
+    - name: Install AWS CLI (if not already installed)
       run: |
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli-exe-linux-x86_64.zip"
-        unzip awscli-exe-linux-x86_64.zip
-        sudo ./aws/install
+        if ! command -v aws &> /dev/null; then
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli-exe-linux-x86_64.zip"
+          unzip awscli-exe-linux-x86_64.zip
+          sudo ./aws/install
+        fi
 
     - name: Deploy to S3
       env:
