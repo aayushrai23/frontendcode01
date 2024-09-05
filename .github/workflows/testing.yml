@@ -54,5 +54,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
       run: |
-        # Update Auto Scaling group
-        aws autoscaling update-auto-scaling-group --auto-scaling-group-name devops --launch-configuration-name devops
+        # Update Auto Scaling group to use Launch Template
+        aws autoscaling update-auto-scaling-group \
+            --auto-scaling-group-name your-auto-scaling-group-name \
+            --launch-template "LaunchTemplateName=my-launch-template,Version=1"
