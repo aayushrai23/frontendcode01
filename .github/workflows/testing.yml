@@ -56,5 +56,5 @@ jobs:
       run: |
         # Update Auto Scaling group to use Launch Template
         aws autoscaling update-auto-scaling-group \
-            --auto-scaling-group-name your-auto-scaling-group-name \
-            --launch-template "LaunchTemplateName=my-launch-template,Version=1"
+            --auto-scaling-group-name devops \
+            --launch-template "LaunchTemplateName=devops,Version=1"
