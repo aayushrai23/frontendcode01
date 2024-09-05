@@ -58,3 +58,22 @@ jobs:
         aws autoscaling update-auto-scaling-group \
             --auto-scaling-group-name devops \
             --launch-template "LaunchTemplateName=devops,Version=1"
+
+    - name: Deploy and Restart on EC2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        # You might need to SSH into an EC2 instance to run these commands
+        # This assumes you have set up SSH keys and access to your EC2 instance
+
+        # Example of SSH command execution (you need to replace `ec2-user@your-ec2-instance-ip` with your actual EC2 user and IP)
+        ssh -i /path/to/your/private-key.pem ec2-user@your-ec2-instance-ip << 'EOF'
+          cd /path/to/your/app
+          npm install || exit
+          npm run build || exit
+          pm2 delete react || exit
+          pm2 start npm --name "react" -- start || exit
+          pm2 restart react || exit
+        EOF
