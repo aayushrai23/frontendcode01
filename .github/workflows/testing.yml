@@ -34,5 +34,23 @@ jobs:
 
     - name: Install AWS CLI
       run: |
-        curl "https://d1uj6qtbmh3dt5.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscli-exe-linux-x86_64.zip"
-        unzip awscli-exe-linux-x86_6
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli-exe-linux-x86_64.zip"
+        unzip awscli-exe-linux-x86_64.zip
+        sudo ./aws/install
+
+    - name: Deploy to S3
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        aws s3 cp build/ s3://my-aws-bucket-react/ --recursive
+
+    - name: Trigger EC2 Auto Scaling Update
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        # Update Auto Scaling group
+        aws autoscaling update-auto-scaling-group --auto-scaling-group-name devops --launch-configuration-name devops
