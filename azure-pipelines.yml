@@ -1,0 +1,37 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Use Node.js 20'
+
+- script: |
+    npm install
+    npm run build
+  displayName: 'Install and Build'
+
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: 'build'   # change to 'dist' if Vite
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
+    replaceExistingArchive: true
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/build.zip'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
+- task: AzureWebApp@1
+  inputs:
+    azureSubscription: '<your-service-connection>'
+    appType: 'webApp'
+    appName: 'your-unique-frontend'
+    package: '$(Pipeline.Workspace)/drop/build.zip'
