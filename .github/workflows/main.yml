@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout source code
+      # Step 1: Checkout full repo
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensures full history and all files are checked out
+          fetch-depth: 0  # Ensures all files (including Dockerfile) are available
 
       # Step 2: Login to Azure
       - name: Log in to Azure
@@ -33,7 +33,7 @@ jobs:
       - name: Log in to Azure Container Registry
         run: az acr login --name ${{ env.REGISTRY_NAME }}
 
-      # Step 4: Install dependencies and build the React app (ignore lint errors)
+      # Step 4: Install dependencies and build frontend (disable ESLint CI fails)
       - name: Build Frontend (React)
         run: |
           echo "🔧 Installing dependencies..."
@@ -41,28 +41,31 @@ jobs:
           echo "🏗️ Building frontend (ignoring lint warnings)..."
           CI=false npm run build
 
-      # Step 5: Verify working directory and list files for debug
-      - name: Verify workspace
+      # Step 5: Debug file structure
+      - name: Debug workspace
         run: |
-          echo "📂 Current directory:"
-          pwd
-          echo "📄 Listing files:"
-          ls -la
+          echo "🏠 GitHub workspace: $GITHUB_WORKSPACE"
+          echo "📂 Listing all files under workspace:"
+          ls -R $GITHUB_WORKSPACE
 
-      # Step 6: Build and Push Docker image (commit SHA + latest)
+      # Step 6: Build and Push Docker image
       - name: Build and Push Docker image
+        working-directory: ${{ github.workspace }}
         run: |
+          echo "🏗️ Working directory: $(pwd)"
+          echo "📄 Files in working directory:"
+          ls -la
           echo "🚀 Building Docker image..."
-          docker build -f ./Dockerfile -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker build -f Dockerfile -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
           docker tag $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest
-          echo "📤 Pushing image to ACR..."
+          echo "📤 Pushing image to Azure Container Registry..."
           docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest
 
       # Step 7: Deploy latest image to Azure Container App
       - name: Deploy to Azure Container App
         run: |
-          echo "🚀 Deploying to Azure Container App..."
+          echo "🚀 Deploying image to Azure Container App..."
           az containerapp update \
             --name ${{ env.CONTAINER_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
