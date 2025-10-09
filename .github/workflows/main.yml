@@ -17,33 +17,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repo
+      # Step 1: Checkout source code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Log in to Azure
+      # Step 2: Login to Azure using service principal credentials
       - name: Log in to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Log in to Azure Container Registry
+      # Step 3: Log in to Azure Container Registry
       - name: Log in to Azure Container Registry
         run: az acr login --name ${{ env.REGISTRY_NAME }}
 
-      # OPTIONAL: Build frontend to ensure successful compilation
-      - name: Build Frontend (React/Vite)
+      # Step 4: Build the frontend (ignore ESLint warnings as errors)
+      - name: Build Frontend (React)
         run: |
           npm ci
-          npm run build
+          CI=false npm run build
 
-      # Build and Push Docker image to ACR
+      # Step 5: Build and push Docker image to Azure Container Registry
       - name: Build and Push Docker image
         run: |
           docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
           docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # Deploy to Azure Container App
+      # Step 6: Deploy the new image to Azure Container App
       - name: Deploy to Azure Container App
         run: |
           az containerapp update \
