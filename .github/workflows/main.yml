@@ -8,7 +8,8 @@ on:
 env:
   ACR_NAME: frontendacr01
   ACR_LOGIN_SERVER: frontendacr01.azurecr.io
-  RESOURCE_GROUP: frontend_rg
+  ACR_RESOURCE_GROUP: frontend_rg
+  APP_RESOURCE_GROUP: DefaultResourceGroup-CID
   CONTAINER_APP_NAME: frontend-app
   IMAGE_NAME: frontend-code
 
@@ -23,15 +24,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Step 2: Log in to Azure
+      # Step 2: Log in to Azure using Service Principal
       - name: 🔐 Log in to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Step 3: Log in to Azure Container Registry
+      # Step 3: Log in to ACR
       - name: 🗝️ Log in to Azure Container Registry
-        run: az acr login --name ${{ env.ACR_NAME }}
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
 
       # Step 4: Install dependencies and build React app
       - name: ⚙️ Install dependencies and build
@@ -39,31 +41,72 @@ jobs:
           echo "🔧 Installing dependencies..."
           npm ci
           echo "🏗️ Building production build..."
-          CI=false npm run build   # 👈 Prevent ESLint warnings from breaking the build
+          CI=false npm run build   # Prevent ESLint warnings from breaking CI build
 
-      # Step 5: Debug workspace (useful for checking Docker context)
+      # Step 5: Debug workspace (optional for troubleshooting)
       - name: 🧩 Debug workspace
         run: |
           echo "🏗️ Working directory: $(pwd)"
           echo "📂 Files available:"
           ls -la
 
-      # Step 6: Build and push Docker image
+      # Step 6: Build and push Docker image to ACR
       - name: 🐳 Build and push Docker image to ACR
         run: |
+          IMAGE_TAG=${{ github.sha }}
           echo "🚀 Building Docker image..."
-          docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-          docker tag $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest
+          docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:$IMAGE_TAG .
+          docker tag $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:$IMAGE_TAG $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest
           echo "📤 Pushing image to ACR..."
-          docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:$IMAGE_TAG
           docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest
 
-      # Step 7: Deploy to Azure Container App
-      - name: 🚀 Deploy to Azure Container App
+      # Step 7: Ensure container app exists before updating
+      - name: 🔎 Check if Container App exists
+        id: check-app
         run: |
-          echo "🚀 Deploying latest image to Azure Container App..."
-          az containerapp update \
+          echo "🔍 Checking if the container app '${{ env.CONTAINER_APP_NAME }}' exists..."
+          if az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group "${{ env.APP_RESOURCE_GROUP }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Container app found."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Container app not found."
+          fi
+
+      # Step 8: Deploy or create the Container App
+      - name: 🚀 Deploy or Create Azure Container App
+        run: |
+          if [ "${{ steps.check-app.outputs.exists }}" = "true" ]; then
+            echo "🚀 Updating existing Container App..."
+            az containerapp update \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group "${{ env.APP_RESOURCE_GROUP }}" \
+              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest \
+              --query properties.configuration.ingress.fqdn
+          else
+            echo "🆕 Creating new Container App..."
+            ENV_NAME="frontend-env"
+            az containerapp env list --resource-group "${{ env.APP_RESOURCE_GROUP }}" --query "[0].name" -o tsv || az containerapp env create \
+              --name $ENV_NAME \
+              --resource-group "${{ env.APP_RESOURCE_GROUP }}" \
+              --location westus
+            az containerapp create \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group "${{ env.APP_RESOURCE_GROUP }}" \
+              --environment $ENV_NAME \
+              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest \
+              --target-port 80 \
+              --ingress external \
+              --registry-server $ACR_LOGIN_SERVER
+          fi
+
+      # Step 9: Verify Deployment
+      - name: 🌐 Verify Deployment
+        run: |
+          echo "🌍 Checking if the app is live..."
+          APP_URL=$(az containerapp show \
             --name ${{ env.CONTAINER_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest \
-            --query properties.configuration.ingress.fqdn
+            --resource-group "${{ env.APP_RESOURCE_GROUP }}" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          echo "✅ App deployed at: https://$APP_URL"
