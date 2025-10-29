@@ -3,13 +3,14 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo Installing dependencies...
+      - echo "Installing dependencies..."
       - npm install
   build:
     commands:
-      - echo Building the frontend...
+      - echo "Building the frontend..."
       - npm run build
 artifacts:
   files:
-    - '**/*'
-  base-directory: build
+    - appspec.yml
+    - scripts/**/*
+    - build/**/*
