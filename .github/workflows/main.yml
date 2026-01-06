@@ -30,33 +30,44 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      # 5️⃣ Ensure target directory exists on server
-      - name: Prepare server directory
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            mkdir -p ${{ secrets.APP_PATH }}
+      # 5️⃣ Ensure target directory exists
+- name: Prepare server directory
+  uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.SSH_HOST }}
+    username: ${{ secrets.SSH_USER }}
+    key: ${{ secrets.SSH_KEY }}
+    script: |
+      mkdir -p ${{ secrets.APP_PATH }}
 
-      # 6️⃣ Upload build folder to server
-      - name: Deploy build to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "build"
-          target: "${{ secrets.APP_PATH }}"
+# 6️⃣ Clean old build
+- name: Clean old build on server
+  uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.SSH_HOST }}
+    username: ${{ secrets.SSH_USER }}
+    key: ${{ secrets.SSH_KEY }}
+    script: |
+      rm -rf ${{ secrets.APP_PATH }}/build
 
-      # 7️⃣ Reload Nginx (zero downtime)
-      - name: Reload Nginx
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            sudo systemctl reload nginx
-            echo "✅ Frontend deployed successfully"
+# 7️⃣ Upload new build
+- name: Deploy build to server
+  uses: appleboy/scp-action@v0.1.7
+  with:
+    host: ${{ secrets.SSH_HOST }}
+    username: ${{ secrets.SSH_USER }}
+    key: ${{ secrets.SSH_KEY }}
+    source: "build"
+    target: "${{ secrets.APP_PATH }}"
+
+# 8️⃣ Reload Nginx
+- name: Reload Nginx
+  uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.SSH_HOST }}
+    username: ${{ secrets.SSH_USER }}
+    key: ${{ secrets.SSH_KEY }}
+    script: |
+      sudo systemctl reload nginx
+      echo "✅ Frontend deployed successfully"
+
