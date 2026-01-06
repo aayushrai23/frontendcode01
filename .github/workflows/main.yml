@@ -11,32 +11,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
 
+      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: npm install
 
+      # 4️⃣ Build frontend (CRA -> build/)
       - name: Build frontend
         run: npm run build
 
-      # ✅ Upload build files to Ubuntu server
+      # 5️⃣ Ensure target directory exists on server
+      - name: Prepare server directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            mkdir -p ${{ secrets.APP_PATH }}
+
+      # 6️⃣ Upload build folder to server
       - name: Deploy build to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: "build/*"
-          target: "${{ secrets.APP_PATH }}/build"
-          strip_components: 1
+          source: "build"
+          target: "${{ secrets.APP_PATH }}"
 
-      # ✅ Reload nginx after deploy
+      # 7️⃣ Reload Nginx (zero downtime)
       - name: Reload Nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
