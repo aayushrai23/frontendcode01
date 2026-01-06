@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -30,7 +30,7 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      # 5️⃣ Ensure target directory exists
+      # 5️⃣ Ensure app directory exists on server
       - name: Prepare server directory
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -40,7 +40,7 @@ jobs:
           script: |
             mkdir -p ${{ secrets.APP_PATH }}
 
-      # 6️⃣ Clean old build
+      # 6️⃣ Clean old build (important)
       - name: Clean old build on server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -48,7 +48,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            rm -rf ${{ secrets.APP_PATH }}/build
+            sudo rm -rf ${{ secrets.APP_PATH }}/build
 
       # 7️⃣ Upload new build
       - name: Deploy build to server
@@ -60,7 +60,7 @@ jobs:
           source: "build"
           target: "${{ secrets.APP_PATH }}"
 
-      # 8️⃣ Reload Nginx
+      # 8️⃣ Reload Nginx (zero downtime)
       - name: Reload Nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
